@@ -1,5 +1,7 @@
 # Homework 2
 
+[Question](https://pdos.csail.mit.edu/6.828/2014/homework/xv6-boot.html)
+
 Following are the result of `x/24x $esp` at the break point of _start.
 
 ```
