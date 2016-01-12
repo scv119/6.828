@@ -18,4 +18,10 @@ Lab 1
 - How does the boot loader decide how many sectors it must read in order to fetch the entire kernel from disk? Where does it find this information?
   The `fileoffset` and `size` offset in elf header for seach segment.
 
-## Exercise 4:
+## Exercise 7:
+
+Before setting up the page, 0x00100000 is the kernel code where as 0xf0100000 is empty. After executing the code and the paging is exampled, 
+both 0x00100000 and 0xf0100000 are mapped to kernel execution code.
+
+Since the relocate is a mapping to 0xf010002f, it failed to load if paging is not enabled.
+
