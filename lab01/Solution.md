@@ -21,7 +21,52 @@ Lab 1
 ## Exercise 7:
 
 Before setting up the page, 0x00100000 is the kernel code where as 0xf0100000 is empty. After executing the code and the paging is exampled, 
-both 0x00100000 and 0xf0100000 are mapped to kernel execution code.
+both 0x00100000 and 0xf0100000 are mapped to kernel execution code.  Since the relocate is a mapping to 0xf010002f, it failed to load if paging is not enabled.
 
-Since the relocate is a mapping to 0xf010002f, it failed to load if paging is not enabled.
+## Exercise 8:
 
+1. What funciton does console.c export? How is the function used by printf.c?
+
+cputchar is exported, and it's called in printf as the function to write output.
+
+2. Explain the follwing code from console.c:
+...
+It's write a new line and move the crt_pos to end of the truncated output if the output is longer than CRT_SIZE.
+
+3. Trace the execution of following code step-by-step:
+```
+int x = 1, y = 3, z = 4;
+cprintf("x %d, y %x, z %d\n", x, y, z);
+```
+In the call to cprintf(), to what does `fmt` point? To what does `ap` point?
+
+fmt point to the address of ebp + 0x8 and ap point to address of ebp + 0xc.
+
+The stack looks like
+
+```
+.
+.
+.
+|z
+|y
+|x
+|fmt pointer
+|return adress
+|ebp
+v 
+where stack grows.
+```
+List the function calls to cons_putc, va_arg and vcprintf. For cons_putc, list its arguments as well, For va_arg, list what ap points to before and after the call
+Most importantly, the va_arg increase by 4 each time after the function call, that's how va_arg work to retrieve the list of argument in the stack.
+
+4. TBD
+
+5. In the following code, what is going to be printed after 'y='? (note: the answer is not a specific value.) Why does this happen?
+```
+cprintf("x=%d y=%d", 3);
+```
+
+It will tries to print the value in the stack before 3, which could be the ebp address of preivous function call or local variables defined in the stack.
+
+6. The argements might need to point to the first argument of argument list instead of last one, and then va_start and va_end should decrease instead of increase.
