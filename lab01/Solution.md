@@ -52,7 +52,7 @@ The stack looks like
 |y
 |x
 |fmt pointer
-|return adress
+|return adress （pushed when `call` assembly is called)
 |ebp
 v 
 where stack grows.
@@ -70,3 +70,30 @@ cprintf("x=%d y=%d", 3);
 It will tries to print the value in the stack before 3, which could be the ebp address of preivous function call or local variables defined in the stack.
 
 6. The argements might need to point to the first argument of argument list instead of last one, and then va_start and va_end should decrease instead of increase.
+
+## Excersize 9:
+It's defined in following line in entry.S
+```
+ movl  $0x0,%ebp     # nuke frame pointer
+
+ # Set the stack pointer
+ movl  $(bootstacktop),%esp
+
+```
+It's located at .data section, whose virtual address should start with f0108000, the size is 4 * PGSIZE and the esp is point to the end (top) of the memory.
+
+## Excersize 10
+
+8 32-bit words does each recusive nesting level of `test_backtrace` push on the stack.
+```
+> gdb$ x/24x $esp
+0xf010ff3c:     0xf0100068   # return address of test_backtrace
+                0x00000000   # argument for test_backtrace     
+                0x00000001   # following are the local variables used for cprintf and compare      
+                0xf010ff78
+0xf010ff4c:     0x00000000      
+                0xf01008b1      
+                0x00000002      
+                0xf010ff78
+...
+```
