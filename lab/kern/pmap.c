@@ -132,7 +132,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	// panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -156,7 +156,7 @@ mem_init(void)
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
   pages = boot_alloc(npages * sizeof(struct PageInfo));
-  memset(pages, 0, npages_* sizeof(struct PageInfo));
+  memset(pages, 0, npages * sizeof(struct PageInfo));
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -261,15 +261,15 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-  size_t pre_free_page_i;
+  size_t pre_free_page_i = -1;
   size_t is_free;
   size_t pa_start, pa_end;
   page_free_list = NULL;
 	for (i = 0; i < npages; i++) {
     is_free = 0;
 
-    if (i > 0 && i < IOPHYSMEM / PGSIZE ||
-        i * PGSIZE >= (uint32_t) boot_alloc(0) - KERNBASE + EXTPHYSMEM) {
+    if ((i > 0 && i < IOPHYSMEM / PGSIZE) ||
+        (i * PGSIZE >= (uint32_t) boot_alloc(0) - KERNBASE + EXTPHYSMEM)) {
       is_free = 1;
     }
 
@@ -313,7 +313,7 @@ page_alloc(int alloc_flags)
   pp = page_free_list;
   page_free_list = page_free_list->pp_link;
   
-  pp->pp_ref = 1;
+  pp->pp_ref = 0;
   pp->pp_link = NULL;
   if (alloc_flags & ALLOC_ZERO) {
     memset(page2kva(pp), 0, PGSIZE);
@@ -329,7 +329,7 @@ void
 page_free(struct PageInfo *pp)
 {
   if (pp->pp_ref > 0 || pp->pp_link != NULL) {
-    panic("Can't free memory!");
+    panic("Can't free memory! ref count: %d, link address: %d", pp->pp_ref, pp->pp_link);
   }
   pp->pp_link = page_free_list;
   page_free_list = pp;
