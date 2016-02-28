@@ -369,10 +369,34 @@ page_decref(struct PageInfo* pp)
 // table and page directory entries.
 //
 pte_t *
-pgdir_walk(pde_t *pgdir, const void *va, int create)
+pgdir_walk(pde_t *pgdir, const void *la, int create)
 {
 	// Fill this function in
-	return NULL;
+  pde_t entry;
+  pte_t *ptdir;
+  pte_t table_entry;
+  Struct PageInfo *page;
+
+  entry = pgdir[PDX(la)];
+  if (entry == 0) {
+    if (!create) {
+      return NULL;
+    }
+
+    page = page_alloc(ALLOC_ZERO); 
+    page->pp_ref ++;
+
+    if (page == NULL) {
+      return NULL;
+    }
+
+    entry = page2pa(page) | PTE_P | PET_W | PTE_S;
+    pgdir[PDX(la)] = entry
+  }
+
+  // Get the page table base linear address.
+  pte_t *pte_base = KADDR(PTE_ADDR(entry));
+  return &pte_base[PTX(la)];
 }
 
 //
@@ -389,7 +413,17 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	// Fill this function in
+  uintptr_t current_va = va;
+  physaddr_t current_pa = pa;
+  pte_t *pte;
+
+  while (current_va < (uint64_t) va + size) {
+    pte = pgdir_walk(pgdir, (const void*)current_va, 1);
+    (* pte) = current_pa | perm | PTE_P;
+
+    current_va += PGSIZE;
+    current_pa += PGSIZE;
+  }
 }
 
 //
@@ -420,8 +454,22 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
-	return 0;
+  pte_t *pte = pgdir_walk(pgdir, va, 1);
+  if (pte == NULL) {
+    return -E_NO_MEM;
+  }
+
+  if (*pte != 0) {
+    page_remove(pgdir, va);    
+    tlb_invalidate(pgdir, va);
+  }
+
+  *pte = page2pa(pp) | perm | PTE_P;
+
+  pp->pp_ref++;
+  pgdir[PDX[va]] |= perm;
+  
+  return 0;
 }
 
 //
