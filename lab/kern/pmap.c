@@ -375,7 +375,7 @@ pgdir_walk(pde_t *pgdir, const void *la, int create)
   pde_t entry;
   pte_t *ptdir;
   pte_t table_entry;
-  Struct PageInfo *page;
+  struct PageInfo *page;
 
   entry = pgdir[PDX(la)];
   if (entry == 0) {
@@ -390,8 +390,8 @@ pgdir_walk(pde_t *pgdir, const void *la, int create)
       return NULL;
     }
 
-    entry = page2pa(page) | PTE_P | PET_W | PTE_S;
-    pgdir[PDX(la)] = entry
+    entry = page2pa(page) | PTE_P | PTE_W;
+    pgdir[PDX(la)] = entry;
   }
 
   // Get the page table base linear address.
@@ -467,7 +467,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
   *pte = page2pa(pp) | perm | PTE_P;
 
   pp->pp_ref++;
-  pgdir[PDX[va]] |= perm;
+  pgdir[PDX(va)] |= perm;
   
   return 0;
 }
@@ -514,7 +514,15 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Fill this function in
+  struct PageInfo *pp = page_lookup(pgdir, va, NULL);
+  if (pp == NULL) {
+    return;
+  }
+  pp->pp_ref--; 
+  if (pp->pp_ref == 0) {
+    page_free(pp);
+    tlb_invalidate(pgdir, va);
+  }
 }
 
 //
