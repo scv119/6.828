@@ -30,3 +30,20 @@
 
 # Debug files
 *.dSYM/
+/obj
+/jos.in
+/jos.log
+/jos.out
+/jos.out.*
+/jos.cmd
+/.gdbinit
+/wget.log
+/qemu.pcap
+/qemu.pcap.*
+/qemu.out
+/qemu.log
+/gradelib.pyc
+/lab?-handin.tar.gz
+/lab?/
+/sol?/
+/myapi.key
