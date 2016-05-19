@@ -78,6 +78,7 @@ void t_fperr();     //16		// floating point error
 void t_align();     //17		// aligment check
 void t_mchk();      //18		// machine check
 void t_simderr();   //19		// simd floating point error
+void t_syscall();   //48    // system call.
 
 
 void
@@ -104,6 +105,8 @@ trap_init(void)
   SETGATE(idt[T_ALIGN], 0, GD_KT, t_align, 0);
   SETGATE(idt[T_MCHK], 0, GD_KT, t_mchk, 0);
   SETGATE(idt[T_SIMDERR], 0, GD_KT, t_simderr, 0);
+
+  SETGATE(idt[T_SYSCALL], 0, GD_KT, t_syscall, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -182,12 +185,24 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+  int32_t ret_code;
   switch (tf->tf_trapno) {
     case T_PGFLT:
       page_fault_handler(tf);
       return;
     case T_BRKPT:
       monitor(tf);
+      return;
+    case T_SYSCALL:
+      ret_code = syscall(
+            tf->tf_regs.reg_eax,
+            tf->tf_regs.reg_edx,
+            tf->tf_regs.reg_ecx,
+            tf->tf_regs.reg_ebx,
+            tf->tf_regs.reg_edi,
+            tf->tf_regs.reg_esi
+          );
+      tf->tf_regs.reg_eax = ret_code;
       return;
     default:
       // Unexpected trap: The user process or the kernel has a bug.
