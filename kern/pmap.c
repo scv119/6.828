@@ -321,7 +321,9 @@ page_init(void)
 	for (i = 0; i < npages; i++) {
     is_free = 0;
 
-    if ((i > 0 && i < IOPHYSMEM / PGSIZE) ||
+    if (i * PGSIZE == MPENTRY_PADDR) {
+      is_free = 0;
+    } else if ((i > 0 && i < IOPHYSMEM / PGSIZE) ||
         (i * PGSIZE >= (uint32_t) boot_alloc(0) - KERNBASE + EXTPHYSMEM)) {
       is_free = 1;
     }
