@@ -87,12 +87,12 @@ sys_exofork(void)
 	// LAB 4: Your code here.
   int ret = 0;
 	struct Env *e;
-  struct Env *parent = curenv;
-	if ((ret = env_alloc(&e, parent->env_id)) != 0) {
+	if ((ret = env_alloc(&e, curenv->env_id)) < 0) {
+    cprintf("sys_exofork: %e\n", ret);
     return ret;
 	}
   e->env_status = ENV_NOT_RUNNABLE;
-  memcpy((void *)&e->env_tf, (void *)&parent->env_tf, sizeof(struct Trapframe));
+  memcpy((void *)&e->env_tf, (void *)&curenv->env_tf, sizeof(struct Trapframe));
   e->env_tf.tf_regs.reg_eax = 0;
   return e->env_id;
 }
@@ -366,6 +366,16 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
     case SYS_yield:
       sys_yield();
       return 0;
+    case SYS_exofork:
+      return sys_exofork();
+	case (SYS_env_set_status):
+			return sys_env_set_status(a1, a2);
+		case (SYS_page_alloc):
+			return sys_page_alloc(a1, (void *) a2, a3);
+		case (SYS_page_map):
+			return sys_page_map(a1, (void *) a2, a3, (void *) a4, a5);
+		case (SYS_page_unmap):
+			return sys_page_unmap(a1, (void *) a2);
 	default:
 		return -E_INVAL;
 	}
