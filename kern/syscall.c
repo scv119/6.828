@@ -138,8 +138,8 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
 	struct Env *e;
-	if (env_alloc(&e, envid) != 0) {
-    return -E_BAD_ENV;
+	if (envid2env(envid, &e, 1) != 0) {
+        return -E_BAD_ENV;
 	}
   e->env_pgfault_upcall = func;
   return 0;
@@ -172,6 +172,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
   struct Env* e;
   struct PageInfo* page;
+
+  cprintf("[%08x] page alloc for [%08x] \n", envid, va);
 
   if ((uint32_t) va >= UTOP || (uint32_t) va % PGSIZE != 0) {
     return -E_INVAL;

@@ -75,7 +75,7 @@ _pgfault_upcall:
 
   // PUsh trap time eip to stack and update the saved esp accordingly.
   pushl %eax
-  movl $esp, 0x30(%ebp)
+  movl %esp, 0x30(%ebp)
 
   // Switch back to current exception stack.
   movl %ebp, %esp
