@@ -52,6 +52,29 @@ static int
 duppage(envid_t envid, unsigned pn)
 {
 	int r;
+  uint32_t perm = PTE_P | PTE_COW;
+  void * addr = (void *) pn * PGSIZE;
+
+  if (uvpt[pn] & PTE_COW | uvpt[pn] & PTE_W) {
+    if (uvpt[pn] | PTE_U) {
+      perm |= PTE_U;
+    }
+    
+    // Map child.
+    if ((r = sys_page_map(thisenv->env_id, addr, envid, addr, perm)) < 0) {
+      panic("sys_page_map: %e", r);
+    }
+
+    // Map parent.
+    if ((r = sys_page_map(thisenv->env_id, addr, thisenv->env_id, addr, perm)) < 0) {
+      panic("sys_page_map: %e", r);
+    }
+  } else {
+    // Just map
+    if ((r = sys_page_map(thisenv->env_id, addr, envid, addr, uvpt[pn] & 0xFFF)) < 0) {
+      panic("sys_page_map: %e", r);
+    }
+  }
 
 	// LAB 4: Your code here.
 	panic("duppage not implemented");
@@ -78,6 +101,51 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
+  // Install pgfault handler.
+  envid_t envid;
+  unsigned pn;
+	set_pgfault_handler(pgfault);
+
+  // Create a child.
+  envid = sys_exofork();
+  if (envid < 0) {
+    panic("Failed to create fork env.");
+  }
+
+	if (envid == 0) {
+		// We're the child.
+		// The copied value of the global variable 'thisenv'
+		// is no longer valid (it refers to the parent!).
+		// Fix it and return 0.
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+
+  // Copy each page below UTOP.
+  for (pn = 0; pn < UTOP / PGSIZE; pn ++) {
+      uint32_t pdx = ROUNDDOWN(pn, NPDENTRIES) / NPDENTRIES;
+          if ((uvpd[pdx] & PTE_P) == PTE_P &&
+               ((uvpt[pn] & PTE_P) == PTE_P)) {
+                    duppage(child_envid, page_num);
+              }
+  }
+
+  // Set up child's exception stack.
+  if (sys_page_alloc(envid, (void *) (UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W) < 0) {
+    panic("Failed to alloc stack for child");
+  }
+
+
+  // Set user page fault entrypoint.
+  if (sys_env_set_pgfault_upcall(envid, pgfault) != 0) {
+    panic("Failed to set up page fault handler");
+  }
+
+  // Set child env runnable.
+	if (sys_env_set_status(envid, ENV_RUNNABLE) < 0) {
+		panic("sys_env_set_status failed.");
+  }
+
 	panic("fork not implemented");
 }
 
