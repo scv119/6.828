@@ -373,7 +373,7 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 4: Your code here.
   if (curenv->env_pgfault_upcall == NULL || 
       tf->tf_esp > UXSTACKTOP ||
-      (tf->tf_esp > USTACKTOP && tf->tf_esp < (UXSTACKTOP - PGSIZE + sizeof(struct UTrapframe) + 4))) {
+      (tf->tf_esp > USTACKTOP && tf->tf_esp < (UXSTACKTOP - PGSIZE + 4))) {
     cprintf("[%08x] user fault va %08x ip %08x\n",
             curenv->env_id, fault_va, tf->tf_eip);
     print_trapframe(tf);
