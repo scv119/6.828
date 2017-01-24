@@ -134,7 +134,7 @@ sys_env_set_status(envid_t envid, int status)
 //	-E_BAD_ENV if environment envid doesn't currently exist,
 //		or the caller doesn't have permission to change envid.
 static int
-ys_env_set_pgfault_upcall(envid_t envid, void *func)
+sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
 	struct Env *e;
@@ -348,7 +348,20 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+  if (dstva >= UTOP) {
+    curenv->env_ipc_dstva = (void *) KERNBASE;
+  }
+  
+  if ((uint32_t) ROUNDDOWN(dstva, PGSIZE) != (uint32_t)dstva)) {
+    return -E_INVAL;
+  } else {
+    curenv->env_ipc_dstva = dstva;
+  }
+	curenv->env_ipc_recving = 1;
+  curenv->env_status = ENV_NOT_RUNNABLE;
+  curenv->env_tf.tf_regs.reg_eax = 0;
+  sched_yield();
+
 	return 0;
 }
 

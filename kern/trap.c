@@ -87,6 +87,12 @@ void t_mchk();      //18		// machine check
 void t_simderr();   //19		// simd floating point error
 void t_syscall();   //48    // system call.
 
+void irq_timer();
+void irq_kbd();
+void irq_serial();
+void irq_spurious();
+void irq_ide();
+void irq_error();
 
 void
 trap_init(void)
@@ -114,6 +120,14 @@ trap_init(void)
   SETGATE(idt[T_SIMDERR], 0, GD_KT, t_simderr, 0);
 
   SETGATE(idt[T_SYSCALL], 0, GD_KT, t_syscall, 3);
+
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, irq_timer, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, irq_kbd, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, irq_serial, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SPURIOUS], 0, GD_KT, irq_spurious, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, irq_ide, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_ERROR], 0, GD_KT, irq_error, 0);
+
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -250,6 +264,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+  if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+    lapic_eoi();
+    sched_yield();
+    return;
+  }
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -373,7 +392,7 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 4: Your code here.
   if (curenv->env_pgfault_upcall == NULL || 
       tf->tf_esp > UXSTACKTOP ||
-      (tf->tf_esp > USTACKTOP && tf->tf_esp < (UXSTACKTOP - PGSIZE + sizeof(struct UTrapframe) + 4))) {
+      (tf->tf_esp > USTACKTOP && tf->tf_esp < (UXSTACKTOP - PGSIZE + 4))) {
     cprintf("[%08x] user fault va %08x ip %08x\n",
             curenv->env_id, fault_va, tf->tf_eip);
     print_trapframe(tf);
