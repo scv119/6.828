@@ -335,14 +335,15 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	struct Env *e;
   struct PageInfo* pg;
   pte_t *pte;
-	if ((r = envid2env(envid, &e, 1)) < 0)
+	if ((r = envid2env(envid, &e, 0)) < 0)
 		return r;
   if (!e->env_ipc_recving)
     return -E_IPC_NOT_RECV;
 
-  if (srcva == 0) {
+
+  if (srcva == 0 || (uint32_t) e->env_ipc_dstva >= UTOP) {
     e->env_ipc_recving = 0;
-    e->env_ipc_from = curenv->env_id;
+		e->env_ipc_from = curenv->env_id;
     e->env_ipc_value = value;
     e->env_ipc_perm = 0;
     e->env_status = ENV_RUNNABLE;
@@ -353,10 +354,10 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
     return 0;
   }
 
-  if (srcva < UTPOP && (uint32_t) ROUNDDOWN(srcva, PGSIZE) != srcva)
+  if ((uint32_t) srcva < UTOP && (uint32_t) ROUNDDOWN(srcva, PGSIZE) != (uint32_t) srcva)
     return -E_INVAL;
 
-  if (srcva < UTOP) {
+  if ((uint32_t) srcva < UTOP) {
     if ((perm & PTE_U) != PTE_U)
       return -E_INVAL;
     if ((perm & PTE_P) != PTE_P)
@@ -398,11 +399,11 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-  if (dstva >= UTOP) {
+  if ((uint32_t) dstva >= UTOP) {
     curenv->env_ipc_dstva = (void *) KERNBASE;
   }
   
-  if ((uint32_t) ROUNDDOWN(dstva, PGSIZE) != (uint32_t)dstva)) {
+  if ((uint32_t) ROUNDDOWN(dstva, PGSIZE) != (uint32_t)dstva) {
     return -E_INVAL;
   } else {
     curenv->env_ipc_dstva = dstva;
@@ -448,6 +449,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			return sys_page_unmap(a1, (void *) a2);
     case (SYS_env_set_pgfault_upcall):
       return sys_env_set_pgfault_upcall(a1, (void *) a2);
+		case (SYS_ipc_try_send):
+			return sys_ipc_try_send(a1, a2, (void *) a3, a4);
+		case (SYS_ipc_recv):
+			return sys_ipc_recv((void *) a1);
 	default:
 		return -E_INVAL;
 	}
